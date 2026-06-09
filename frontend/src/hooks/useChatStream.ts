@@ -1,0 +1,146 @@
+import { backendUrl } from '../lib/api';
+import { useAppStore } from '../store/useAppStore';
+import type { StreamEvent } from '../types';
+
+function createId(prefix: string): string {
+  return `${prefix}_${crypto.randomUUID()}`;
+}
+
+function parseSseChunk(buffer: string): { events: StreamEvent[]; rest: string } {
+  const events: StreamEvent[] = [];
+  const parts = buffer.split('\n\n');
+  const rest = parts.pop() ?? '';
+
+  for (const part of parts) {
+    const dataLine = part.split('\n').find((line) => line.startsWith('data:'));
+    if (!dataLine) continue;
+    try {
+      events.push(JSON.parse(dataLine.slice(5).trim()) as StreamEvent);
+    } catch {
+      // Ignore malformed SSE fragments and continue streaming.
+    }
+  }
+  return { events, rest };
+}
+
+export function useChatStream() {
+  const store = useAppStore();
+
+  async function sendMessage(content: string) {
+    const trimmed = content.trim();
+    if (!trimmed || store.isStreaming) return;
+
+    if (!store.openrouterApiKey || !store.e2bApiKey || !store.selectedModel) {
+      store.setError('Add OpenRouter API key, E2B API key, and select a model in Settings before chatting.');
+      return;
+    }
+
+    store.setError(null);
+    store.setStatusText('creating sandbox...');
+    store.setIsStreaming(true);
+    const userMessageId = createId('user');
+    const assistantMessageId = createId('assistant');
+    store.addMessage({ id: userMessageId, role: 'user', content: trimmed });
+    store.addMessage({ id: assistantMessageId, role: 'assistant', content: '', isStreaming: true });
+
+    try {
+      const response = await fetch(`${backendUrl()}/api/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: trimmed,
+          session_id: store.sessionId,
+          openrouter_api_key: store.openrouterApiKey,
+          e2b_api_key: store.e2bApiKey,
+          model: store.selectedModel,
+          template_id: store.templateId || null,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(`Chat stream failed with HTTP ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parsed = parseSseChunk(buffer);
+        buffer = parsed.rest;
+        parsed.events.forEach((event) => handleStreamEvent(event, assistantMessageId));
+      }
+
+      if (buffer.trim()) {
+        parseSseChunk(`${buffer}\n\n`).events.forEach((event) => handleStreamEvent(event, assistantMessageId));
+      }
+    } catch (error) {
+      store.setError(error instanceof Error ? error.message : 'Unexpected chat stream error.');
+      store.setMessageStreaming(assistantMessageId, false);
+    } finally {
+      store.setIsStreaming(false);
+      store.setStatusText('');
+      store.setMessageStreaming(assistantMessageId, false);
+    }
+  }
+
+  function handleStreamEvent(event: StreamEvent, assistantMessageId: string) {
+    switch (event.type) {
+      case 'iteration_reset':
+      case 'iteration':
+        store.setIteration(event.iteration, event.max_iterations);
+        break;
+      case 'status':
+        store.setStatusText(event.message);
+        break;
+      case 'sandbox_created':
+        store.setSessionId(event.session_id);
+        store.setStatusText('thinking....');
+        break;
+      case 'token':
+        store.appendAssistantToken(assistantMessageId, event.content);
+        store.setStatusText('thinking....');
+        break;
+      case 'tool_call':
+        store.addToolActivity({
+          id: event.id,
+          name: event.name,
+          action: event.action,
+          filePath: event.file_path,
+          status: 'running',
+        });
+        store.setStatusText('thinking....');
+        break;
+      case 'tool_result': {
+        let isError = false;
+        try {
+          isError = JSON.parse(event.content).is_error === true;
+        } catch {
+          isError = false;
+        }
+        store.completeToolActivity(event.id, event.content, isError);
+        break;
+      }
+      case 'file_tree':
+        store.setFileTree(event.tree);
+        break;
+      case 'done':
+        store.setSessionId(event.session_id);
+        store.setStatusText('');
+        store.setMessageStreaming(assistantMessageId, false);
+        break;
+      case 'error':
+        store.setError(event.message);
+        store.setStatusText('');
+        store.setMessageStreaming(assistantMessageId, false);
+        break;
+      default:
+        break;
+    }
+  }
+
+  return { sendMessage };
+}

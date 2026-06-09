@@ -1,33 +1,26 @@
-# prod
-dist/
-
-# dev
-.yarn/
-!.yarn/releases
-.vscode/*
-!.vscode/launch.json
-!.vscode/*.code-snippets
-.idea/workspace.xml
-.idea/usage.statistics.xml
-.idea/shelf
-
-# deps
+# Dependencies
 node_modules/
-.wrangler
+frontend/node_modules/
+backend/.venv/
 
-# env
+# Build output
+frontend/dist/
+backend/.pytest_cache/
+**/__pycache__/
+*.pyc
+
+# Environment and secrets
 .env
-.env.production
-.dev.vars
+.env.*
+backend/.env
+frontend/.env.local
 
-# logs
-logs/
+# Logs and temp
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# misc
 .DS_Store
+.cache/
+
+# TypeScript build metadata
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
