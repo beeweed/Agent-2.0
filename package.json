@@ -1,0 +1,7 @@
+{
+  "name": "agent-2-0",
+  "private": true,
+  "scripts": {
+    "build:local": "bash -lc 'cd backend && . .venv/bin/activate && PYTHONPATH=/workspace/Agent-2.0/backend pytest && cd ../frontend && npm run build'"
+  }
+}

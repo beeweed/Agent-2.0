@@ -25,19 +25,28 @@ class E2BSandboxManager:
         self._sessions: dict[str, SandboxSession] = {}
         self._lock = asyncio.Lock()
 
-    async def get_or_create(self, session_id: str | None, api_key: str, template_id: str | None = None) -> SandboxSession:
+    def has_session(self, session_id: str | None) -> bool:
+        return bool(session_id and session_id in self._sessions)
+
+    async def get_or_create(
+        self,
+        session_id: str | None,
+        api_key: str,
+        template_id: str | None = None,
+    ) -> tuple[SandboxSession, bool]:
         if not api_key:
             raise ValueError("E2B API key is required before chat can start.")
 
         async with self._lock:
             resolved_session_id = session_id or str(uuid4())
-            if resolved_session_id in self._sessions:
-                return self._sessions[resolved_session_id]
+            existing = self._sessions.get(resolved_session_id)
+            if existing:
+                return existing, False
 
             sandbox = await asyncio.to_thread(self._create_sandbox, api_key, template_id)
             created = SandboxSession(session_id=resolved_session_id, sandbox=sandbox)
             self._sessions[resolved_session_id] = created
-            return created
+            return created, True
 
     def _create_sandbox(self, api_key: str, template_id: str | None) -> Any:
         try:

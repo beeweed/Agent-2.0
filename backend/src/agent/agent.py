@@ -89,15 +89,18 @@ class CodingAgent:
             return
 
         yield {"type": "iteration_reset", "iteration": 0, "max_iterations": settings.max_iterations}
-        yield {"type": "status", "state": "creating_sandbox", "message": "creating sandbox..."}
+        should_create_sandbox = not self.sandbox_manager.has_session(session_id)
+        if should_create_sandbox:
+            yield {"type": "status", "state": "creating_sandbox", "message": "creating sandbox..."}
 
         try:
-            session = await self.sandbox_manager.get_or_create(session_id, e2b_api_key, template_id)
+            session, created_sandbox = await self.sandbox_manager.get_or_create(session_id, e2b_api_key, template_id)
         except Exception as exc:
             yield {"type": "error", "message": f"Failed to create E2B sandbox: {exc}"}
             return
 
-        yield {"type": "sandbox_created", "session_id": session.session_id, "message": "Sandbox is ready."}
+        if created_sandbox:
+            yield {"type": "sandbox_created", "session_id": session.session_id, "message": "Sandbox is ready."}
 
         async with self._history_lock:
             history = self.histories.setdefault(session.session_id, [{"role": "system", "content": SYSTEM_PROMPT}])

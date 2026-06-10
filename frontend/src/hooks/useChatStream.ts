@@ -35,8 +35,10 @@ export function useChatStream() {
       return;
     }
 
+    const hasExistingSession = Boolean(store.sessionId);
+
     store.setError(null);
-    store.setStatusText('creating sandbox...');
+    store.setStatusText(hasExistingSession ? 'thinking...' : 'creating sandbox...');
     store.setIsStreaming(true);
     const userMessageId = createId('user');
     const assistantMessageId = createId('assistant');
@@ -98,11 +100,11 @@ export function useChatStream() {
         break;
       case 'sandbox_created':
         store.setSessionId(event.session_id);
-        store.setStatusText('thinking....');
+        store.setStatusText('thinking...');
         break;
       case 'token':
         store.appendAssistantToken(assistantMessageId, event.content);
-        store.setStatusText('thinking....');
+        store.setStatusText('thinking...');
         break;
       case 'tool_call':
         store.addToolActivity({
@@ -112,7 +114,7 @@ export function useChatStream() {
           filePath: event.file_path,
           status: 'running',
         });
-        store.setStatusText('thinking....');
+        store.setStatusText('thinking...');
         break;
       case 'tool_result': {
         let isError = false;
