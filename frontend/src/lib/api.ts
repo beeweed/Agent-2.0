@@ -1,12 +1,14 @@
 import type { ModelInfo } from '../types';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string | undefined;
-
 export function backendUrl(): string {
-  if (!BACKEND_URL) {
-    throw new Error('VITE_BACKEND_URL is not configured in frontend/.env');
+  // In dev mode, Vite proxies /api to the backend (see vite.config.ts proxy)
+  // In production, set VITE_BACKEND_URL or the same proxy setup handles it
+  const envUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+  if (envUrl) {
+    return envUrl.replace(/\/$/, '');
   }
-  return BACKEND_URL.replace(/\/$/, '');
+  // Fall back to empty string (same origin) — proxy handles /api routes
+  return '';
 }
 
 export async function fetchModels(apiKey: string): Promise<ModelInfo[]> {

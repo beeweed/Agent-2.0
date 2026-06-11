@@ -8,11 +8,23 @@ export default defineConfig({
     host: true,
     cors: true,
     port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     allowedHosts: true,
     host: true,
     cors: true,
     port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
 });

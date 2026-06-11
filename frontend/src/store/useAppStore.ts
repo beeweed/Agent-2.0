@@ -9,6 +9,12 @@ interface PersistedSettings {
   selectedModel: string;
 }
 
+interface ToastState {
+  message: string;
+  submessage: string;
+  visible: boolean;
+}
+
 interface AppState extends PersistedSettings {
   messages: ChatMessage[];
   toolActivities: ToolActivity[];
@@ -20,6 +26,10 @@ interface AppState extends PersistedSettings {
   statusText: string;
   isStreaming: boolean;
   error: string | null;
+  memoryOpen: boolean;
+  selectedFilePath: string | null;
+  fileContents: Record<string, string>;
+  toast: ToastState;
   setSettings: (settings: Partial<PersistedSettings>) => void;
   setModels: (models: ModelInfo[]) => void;
   addMessage: (message: ChatMessage) => void;
@@ -34,6 +44,11 @@ interface AppState extends PersistedSettings {
   setIsStreaming: (value: boolean) => void;
   setError: (error: string | null) => void;
   resetConversation: () => void;
+  setMemoryOpen: (open: boolean) => void;
+  setSelectedFilePath: (path: string | null) => void;
+  setFileContent: (path: string, content: string) => void;
+  showToast: (message: string, submessage: string) => void;
+  hideToast: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -53,6 +68,10 @@ export const useAppStore = create<AppState>()(
       statusText: '',
       isStreaming: false,
       error: null,
+      memoryOpen: false,
+      selectedFilePath: null,
+      fileContents: {},
+      toast: { message: '', submessage: '', visible: false },
       setSettings: (settings) => set(settings),
       setModels: (models) => set({ models }),
       addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
@@ -90,6 +109,12 @@ export const useAppStore = create<AppState>()(
           isStreaming: false,
           error: null,
         }),
+      setMemoryOpen: (memoryOpen) => set({ memoryOpen }),
+      setSelectedFilePath: (selectedFilePath) => set({ selectedFilePath }),
+      setFileContent: (path, content) =>
+        set((state) => ({ fileContents: { ...state.fileContents, [path]: content } })),
+      showToast: (message, submessage) => set({ toast: { message, submessage, visible: true } }),
+      hideToast: () => set({ toast: { message: '', submessage: '', visible: false } }),
     }),
     {
       name: 'e2b-agent-settings',

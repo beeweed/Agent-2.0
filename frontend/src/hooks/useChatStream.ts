@@ -124,6 +124,15 @@ export function useChatStream() {
           isError = false;
         }
         store.completeToolActivity(event.id, event.content, isError);
+
+        // Store file content for the code editor if available
+        if (event.file_path && event.content && !isError) {
+          store.setFileContent(event.file_path, event.content);
+        }
+
+        if (event.file_path) {
+          store.showToast('File completed', event.file_path);
+        }
         break;
       }
       case 'file_tree':
