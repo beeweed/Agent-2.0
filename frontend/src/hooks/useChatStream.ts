@@ -42,8 +42,8 @@ export function useChatStream() {
     store.setIsStreaming(true);
     const userMessageId = createId('user');
     const assistantMessageId = createId('assistant');
-    store.addMessage({ id: userMessageId, role: 'user', content: trimmed });
-    store.addMessage({ id: assistantMessageId, role: 'assistant', content: '', isStreaming: true });
+    store.addMessage({ id: userMessageId, role: 'user', blocks: [{ type: 'text', content: trimmed }] });
+    store.addMessage({ id: assistantMessageId, role: 'assistant', blocks: [], isStreaming: true });
 
     try {
       const response = await fetch(`${backendUrl()}/api/chat/stream`, {
@@ -107,7 +107,8 @@ export function useChatStream() {
         store.setStatusText('thinking...');
         break;
       case 'tool_call':
-        store.addToolActivity({
+        store.addToolBlock(assistantMessageId, {
+          type: 'tool',
           id: event.id,
           name: event.name,
           action: event.action,
@@ -123,7 +124,10 @@ export function useChatStream() {
         } catch {
           isError = false;
         }
-        store.completeToolActivity(event.id, event.content, isError);
+        store.updateToolBlock(assistantMessageId, event.id, {
+          status: isError ? 'error' : 'done',
+          content: event.content,
+        });
 
         // Store file content for the code editor if available
         if (event.file_path && event.content && !isError) {

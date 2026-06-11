@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ChatMessage, FileNode, ModelInfo, ToolActivity } from '../types';
+import type { ChatMessage, FileNode, MessageBlock, ModelInfo } from '../types';
 
 interface PersistedSettings {
   openrouterApiKey: string;
@@ -17,7 +17,6 @@ interface ToastState {
 
 interface AppState extends PersistedSettings {
   messages: ChatMessage[];
-  toolActivities: ToolActivity[];
   models: ModelInfo[];
   fileTree: FileNode | null;
   sessionId: string | null;
@@ -34,9 +33,9 @@ interface AppState extends PersistedSettings {
   setModels: (models: ModelInfo[]) => void;
   addMessage: (message: ChatMessage) => void;
   appendAssistantToken: (messageId: string, token: string) => void;
+  addToolBlock: (messageId: string, block: MessageBlock) => void;
+  updateToolBlock: (messageId: string, toolId: string, updates: Partial<{ status: 'running' | 'done' | 'error'; content: string }>) => void;
   setMessageStreaming: (messageId: string, isStreaming: boolean) => void;
-  addToolActivity: (activity: ToolActivity) => void;
-  completeToolActivity: (id: string, content: string, isError?: boolean) => void;
   setFileTree: (tree: FileNode | null) => void;
   setSessionId: (sessionId: string | null) => void;
   setIteration: (iteration: number, maxIterations: number) => void;
@@ -59,7 +58,6 @@ export const useAppStore = create<AppState>()(
       templateId: '',
       selectedModel: '',
       messages: [],
-      toolActivities: [],
       models: [],
       fileTree: null,
       sessionId: null,
@@ -77,20 +75,44 @@ export const useAppStore = create<AppState>()(
       addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
       appendAssistantToken: (messageId, token) =>
         set((state) => ({
+          messages: state.messages.map((message) => {
+            if (message.id !== messageId) return message;
+            const blocks = [...message.blocks];
+            const lastBlock = blocks[blocks.length - 1];
+            if (lastBlock && lastBlock.type === 'text') {
+              blocks[blocks.length - 1] = { type: 'text', content: lastBlock.content + token };
+            } else {
+              blocks.push({ type: 'text', content: token });
+            }
+            return { ...message, blocks };
+          }),
+        })),
+      addToolBlock: (messageId, block) =>
+        set((state) => ({
           messages: state.messages.map((message) =>
-            message.id === messageId ? { ...message, content: message.content + token } : message,
+            message.id === messageId
+              ? { ...message, blocks: [...message.blocks, block] }
+              : message,
+          ),
+        })),
+      updateToolBlock: (messageId, toolId, updates) =>
+        set((state) => ({
+          messages: state.messages.map((message) =>
+            message.id === messageId
+              ? {
+                  ...message,
+                  blocks: message.blocks.map((block) =>
+                    block.type === 'tool' && block.id === toolId
+                      ? { ...block, ...updates }
+                      : block,
+                  ),
+                }
+              : message,
           ),
         })),
       setMessageStreaming: (messageId, isStreaming) =>
         set((state) => ({
           messages: state.messages.map((message) => (message.id === messageId ? { ...message, isStreaming } : message)),
-        })),
-      addToolActivity: (activity) => set((state) => ({ toolActivities: [...state.toolActivities, activity] })),
-      completeToolActivity: (id, content, isError) =>
-        set((state) => ({
-          toolActivities: state.toolActivities.map((activity) =>
-            activity.id === id ? { ...activity, status: isError ? 'error' : 'done', content } : activity,
-          ),
         })),
       setFileTree: (fileTree) => set({ fileTree }),
       setSessionId: (sessionId) => set({ sessionId }),
@@ -101,7 +123,6 @@ export const useAppStore = create<AppState>()(
       resetConversation: () =>
         set({
           messages: [],
-          toolActivities: [],
           fileTree: null,
           sessionId: null,
           iteration: 0,

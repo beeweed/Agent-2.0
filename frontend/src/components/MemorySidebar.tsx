@@ -5,9 +5,10 @@ export function MemorySidebar() {
   const iteration = useAppStore((state) => state.iteration);
   const maxIterations = useAppStore((state) => state.maxIterations);
   const fileTree = useAppStore((state) => state.fileTree);
-  const toolActivities = useAppStore((state) => state.toolActivities);
   const messages = useAppStore((state) => state.messages);
   const sessionId = useAppStore((state) => state.sessionId);
+
+  const allToolBlocks = messages.flatMap((m) => m.blocks.filter((b) => b.type === 'tool'));
 
   function countFiles(node: typeof fileTree): number {
     if (!node) return 0;
@@ -15,10 +16,10 @@ export function MemorySidebar() {
     return (node.children || []).reduce((sum, child) => sum + countFiles(child), 0);
   }
 
-  const totalToolCalls = toolActivities.length;
+  const totalToolCalls = allToolBlocks.length;
   const totalFiles = countFiles(fileTree);
   const totalIterations = iteration;
-  const contextSize = messages.reduce((sum, m) => sum + m.content.length, 0);
+  const contextSize = messages.reduce((sum, m) => sum + m.blocks.reduce((s, b) => s + (b.type === 'text' ? b.content.length : 0), 0), 0);
   const contextK = Math.round(contextSize / 100) / 10;
 
   return (
@@ -135,25 +136,25 @@ export function MemorySidebar() {
 
           {/* Timeline Entries */}
           <div className="space-y-2">
-            {toolActivities.length === 0 ? (
+            {allToolBlocks.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-xs text-muted-foreground">No tool activity yet.</p>
               </div>
             ) : (
-              toolActivities.slice().reverse().map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 rounded-xl bg-[#363638] border border-border/30">
+              allToolBlocks.slice().reverse().map((block) => (
+                <div key={block.id} className="flex items-start gap-3 p-3 rounded-xl bg-[#363638] border border-border/30">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    activity.status === 'done'
+                    block.status === 'done'
                       ? 'bg-emerald-500/20'
-                      : activity.status === 'error'
+                      : block.status === 'error'
                         ? 'bg-red-500/20'
                         : 'bg-blue-500/20'
                   }`}>
-                    {activity.status === 'done' ? (
+                    {block.status === 'done' ? (
                       <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                    ) : activity.status === 'error' ? (
+                    ) : block.status === 'error' ? (
                       <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -165,18 +166,18 @@ export function MemorySidebar() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-foreground">{activity.action}</span>
+                      <span className="text-xs font-medium text-foreground">{block.action}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                        activity.status === 'done'
+                        block.status === 'done'
                           ? 'bg-emerald-500/15 text-emerald-400'
-                          : activity.status === 'error'
+                          : block.status === 'error'
                             ? 'bg-red-500/15 text-red-400'
                             : 'bg-primary/15 text-primary animate-pulse'
                       }`}>
-                        {activity.status}
+                        {block.status}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{activity.filePath || activity.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{block.filePath || block.name}</p>
                   </div>
                 </div>
               ))

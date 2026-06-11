@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import type { ToolActivity } from '../types';
+import type { ToolBlock } from '../types';
 
 interface ToolCallBlockProps {
-  activity: ToolActivity;
+  block: ToolBlock;
 }
 
-export function ToolCallBlock({ activity }: ToolCallBlockProps) {
+export function ToolCallBlock({ block }: ToolCallBlockProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -19,21 +19,21 @@ export function ToolCallBlock({ activity }: ToolCallBlockProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
         </div>
-        <span className="text-xs font-mono text-muted-foreground">{activity.action}</span>
+        <span className="text-xs font-mono text-muted-foreground">{block.action}</span>
         <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-          activity.status === 'done' ? 'bg-emerald-500/15 text-emerald-400' :
-          activity.status === 'error' ? 'bg-red-500/15 text-red-400' :
+          block.status === 'done' ? 'bg-emerald-500/15 text-emerald-400' :
+          block.status === 'error' ? 'bg-red-500/15 text-red-400' :
           'bg-primary/15 text-primary animate-pulse'
         }`}>
-          {activity.status}
+          {block.status}
         </span>
         <svg className={`w-4 h-4 text-muted-foreground ml-auto transition-transform ${expanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
-      {expanded && activity.content && (
+      {expanded && block.content && (
         <div className="px-3 pb-3">
-          <pre className="text-xs text-muted-foreground font-mono bg-[#1e1e1e] rounded-lg p-3 overflow-auto max-h-[200px] whitespace-pre-wrap">{activity.content}</pre>
+          <pre className="text-xs text-muted-foreground font-mono bg-[#1e1e1e] rounded-lg p-3 overflow-auto max-h-[200px] whitespace-pre-wrap">{block.content}</pre>
         </div>
       )}
     </div>

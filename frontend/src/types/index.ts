@@ -1,19 +1,27 @@
 export type Role = 'user' | 'assistant' | 'system';
 
-export interface ChatMessage {
-  id: string;
-  role: Role;
+export interface TextBlock {
+  type: 'text';
   content: string;
-  isStreaming?: boolean;
 }
 
-export interface ToolActivity {
+export interface ToolBlock {
+  type: 'tool';
   id: string;
   name: string;
   action: string;
   filePath: string;
   status: 'running' | 'done' | 'error';
   content?: string;
+}
+
+export type MessageBlock = TextBlock | ToolBlock;
+
+export interface ChatMessage {
+  id: string;
+  role: Role;
+  blocks: MessageBlock[];
+  isStreaming?: boolean;
 }
 
 export interface ModelInfo {

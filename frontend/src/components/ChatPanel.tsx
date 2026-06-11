@@ -11,7 +11,6 @@ import { SettingsDialog } from './SettingsDialog';
 export function ChatPanel() {
   const [input, setInput] = useState('');
   const messages = useAppStore((state) => state.messages);
-  const toolActivities = useAppStore((state) => state.toolActivities);
   const statusText = useAppStore((state) => state.statusText);
   const isStreaming = useAppStore((state) => state.isStreaming);
   const error = useAppStore((state) => state.error);
@@ -26,7 +25,7 @@ export function ChatPanel() {
 
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, toolActivities, statusText]);
+  }, [messages, statusText]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,14 +88,12 @@ export function ChatPanel() {
               </div>
             ) : null}
 
-            {messages.map((message, index) => {
-              const isLastAssistant = message.role === 'assistant' && index === messages.length - 1;
-              return (
+            {messages.map((message) => (
               <div key={message.id}>
                 {message.role === 'user' ? (
                   <div className="flex gap-3 justify-end animate-fade-in">
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-tr-md bg-primary text-primary-foreground shadow-lg shadow-primary/10">
-                      <p className="text-sm">{message.content}</p>
+                      <p className="text-sm">{message.blocks.map((b) => (b.type === 'text' ? b.content : '')).join('')}</p>
                     </div>
                     <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
                       <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,48 +119,44 @@ export function ChatPanel() {
                         </div>
                       )}
 
-                      {message.content ? (
-                        <div className="text-sm leading-relaxed text-foreground/90 mb-3 whitespace-pre-wrap">
-                          {message.content}
-                        </div>
-                      ) : null}
+                      {/* Blocks rendered in chronological order */}
+                      {message.blocks.map((block, blockIndex) => {
+                        if (block.type === 'text' && block.content) {
+                          return (
+                            <div key={`text-${blockIndex}`} className="text-sm leading-relaxed text-foreground/90 mb-3 whitespace-pre-wrap">
+                              {block.content}
+                            </div>
+                          );
+                        }
+                        if (block.type === 'tool') {
+                          if (block.status === 'running') {
+                            return (
+                              <div key={block.id} className="mb-3">
+                                <FileCard path={block.filePath} status="writing" description={block.name} />
+                              </div>
+                            );
+                          }
+                          if (block.status === 'done') {
+                            return (
+                              <div key={block.id} className="mb-3 space-y-2">
+                                <FileCard path={block.filePath} status="created" description={block.name} />
+                                <ToolCallBlock block={block} />
+                              </div>
+                            );
+                          }
+                          if (block.status === 'error') {
+                            return (
+                              <div key={block.id} className="mb-3">
+                                <ToolChip block={block} />
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })}
 
-                      {/* File Cards — only inside last assistant message */}
-                      {isLastAssistant && toolActivities.length > 0 && (
-                        <div className="space-y-2 mb-3">
-                          {toolActivities.map((activity) => (
-                            activity.status === 'running' ? (
-                              <FileCard
-                                key={activity.id}
-                                path={activity.filePath}
-                                status="writing"
-                                description={activity.name}
-                              />
-                            ) : activity.status === 'done' ? (
-                              <FileCard
-                                key={activity.id}
-                                path={activity.filePath}
-                                status="created"
-                                description={activity.name}
-                              />
-                            ) : (
-                              <ToolChip key={activity.id} activity={activity} />
-                            )
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Tool Call Blocks — only inside last assistant message */}
-                      {isLastAssistant && toolActivities.filter(a => a.status === 'done').length > 0 && (
-                        <div className="space-y-2">
-                          {toolActivities.filter(a => a.status === 'done').map((activity) => (
-                            <ToolCallBlock key={activity.id} activity={activity} />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Error Banner — only inside last assistant message */}
-                      {isLastAssistant && error && (
+                      {/* Error Banner */}
+                      {error && (
                         <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 mt-3">
                           <p className="text-sm text-red-400">{error}</p>
                         </div>
@@ -172,10 +165,9 @@ export function ChatPanel() {
                   </div>
                 )}
               </div>
-              );
-            })}
+            ))}
 
-            {/* Thinking Indicator — after last assistant message */}
+            {/* Thinking Indicator — after all messages */}
             <ThinkingIndicator text={statusText} />
           </div>
         </ScrollArea.Viewport>
