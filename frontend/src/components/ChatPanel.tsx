@@ -4,7 +4,6 @@ import { useChatStream } from '../hooks/useChatStream';
 import { useAppStore } from '../store/useAppStore';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { ToolChip } from './ToolChip';
-import { ToolCallBlock } from './ToolCallBlock';
 import { FileCard } from './FileCard';
 import { SettingsDialog } from './SettingsDialog';
 
@@ -138,9 +137,8 @@ export function ChatPanel() {
                           }
                           if (block.status === 'done') {
                             return (
-                              <div key={block.id} className="mb-3 space-y-2">
+                              <div key={block.id} className="mb-3">
                                 <FileCard path={block.filePath} status="created" description={block.name} />
-                                <ToolCallBlock block={block} />
                               </div>
                             );
                           }
