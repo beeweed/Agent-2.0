@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Allow example env file to be tracked
+!.env.example
+
+# Logs and temp
+*.log
+.DS_Store
+
+# TypeScript build metadata
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Vite generated
+vite.config.js
+vite.config.d.ts
