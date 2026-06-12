@@ -1,27 +1,7 @@
 import { backendUrl } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
+import { createId, parseSseChunk, extractErrorFromToolResult } from '../utils';
 import type { StreamEvent } from '../types';
-
-function createId(prefix: string): string {
-  return `${prefix}_${crypto.randomUUID()}`;
-}
-
-function parseSseChunk(buffer: string): { events: StreamEvent[]; rest: string } {
-  const events: StreamEvent[] = [];
-  const parts = buffer.split('\n\n');
-  const rest = parts.pop() ?? '';
-
-  for (const part of parts) {
-    const dataLine = part.split('\n').find((line) => line.startsWith('data:'));
-    if (!dataLine) continue;
-    try {
-      events.push(JSON.parse(dataLine.slice(5).trim()) as StreamEvent);
-    } catch {
-      // Ignore malformed SSE fragments and continue streaming.
-    }
-  }
-  return { events, rest };
-}
 
 export function useChatStream() {
   const store = useAppStore();
@@ -118,12 +98,7 @@ export function useChatStream() {
         store.setStatusText('thinking...');
         break;
       case 'tool_result': {
-        let isError = false;
-        try {
-          isError = JSON.parse(event.content).is_error === true;
-        } catch {
-          isError = false;
-        }
+        const isError = extractErrorFromToolResult(event.content);
         store.updateToolBlock(assistantMessageId, event.id, {
           status: isError ? 'error' : 'done',
           content: event.content,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cn } from './utils';
 import { useAppStore } from './store/useAppStore';
 import { ChatPanel } from './components/ChatPanel';
 import { FileExplorer } from './components/FileExplorer';
@@ -100,22 +101,24 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setTabletPanel('files')}
-                  className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                  className={cn(
+                    'rounded-xl px-4 py-2 text-sm font-medium transition-colors',
                     tabletPanel === 'files'
                       ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
                 >
                   Files
                 </button>
                 <button
                   type="button"
                   onClick={() => setTabletPanel('editor')}
-                  className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                  className={cn(
+                    'rounded-xl px-4 py-2 text-sm font-medium transition-colors',
                     tabletPanel === 'editor'
                       ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
                 >
                   Editor
                 </button>
@@ -171,11 +174,12 @@ export default function App() {
                   key={panel.id}
                   type="button"
                   onClick={() => setMobilePanel(panel.id)}
-                  className={`flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs font-medium transition-all ${
+                  className={cn(
+                    'flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs font-medium transition-all',
                     active
                       ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                      : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                  }`}
+                      : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground',
+                  )}
                 >
                   <span>{panel.label}</span>
                   {panel.id === 'editor' && selectedFilePath ? (

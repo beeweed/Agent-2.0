@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
+import { cn } from '../utils';
 import type { FileNode } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { getFileIcon } from './FileIcon';
@@ -30,9 +31,10 @@ function FileTreeNode({ node, depth = 0 }: { node: FileNode; depth?: number }) {
       <button
         type="button"
         onClick={handleClick}
-        className={`mx-1 flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-all duration-150 ${
-          isSelected ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-white/5'
-        }`}
+        className={cn(
+          'mx-1 flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-all duration-150',
+          isSelected ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-white/5',
+        )}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
       >
         {isDirectory ? (
@@ -66,9 +68,10 @@ function FileTreeNode({ node, depth = 0 }: { node: FileNode; depth?: number }) {
 export function FileExplorer({ tree, fullWidth = false, hideFooter = false }: FileExplorerProps) {
   return (
     <div
-      className={`flex h-full min-w-0 flex-col bg-[#232323] ${
-        fullWidth ? 'w-full border-r-0' : 'w-56 shrink-0 border-r border-border/30 lg:w-64'
-      }`}
+      className={cn(
+        'flex h-full min-w-0 flex-col bg-[#232323]',
+        fullWidth ? 'w-full border-r-0' : 'w-56 shrink-0 border-r border-border/30 lg:w-64',
+      )}
     >
       <div className="flex items-center justify-between border-b border-border/50 px-3 py-3">
         <div className="flex items-center gap-2">

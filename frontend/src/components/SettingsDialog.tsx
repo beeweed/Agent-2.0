@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { cn } from '../utils';
 import { fetchModels } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
 
@@ -187,9 +188,10 @@ export function SettingsDialog() {
                       key={model.id}
                       type="button"
                       onClick={() => setSettings({ selectedModel: model.id })}
-                      className={`flex w-full cursor-pointer items-center justify-between rounded-xl p-3 text-left transition-colors ${
-                        selectedModel === model.id ? 'border border-primary/30 bg-primary/15' : 'hover:bg-white/5'
-                      }`}
+                      className={cn(
+                        'flex w-full cursor-pointer items-center justify-between rounded-xl p-3 text-left transition-colors',
+                        selectedModel === model.id ? 'border border-primary/30 bg-primary/15' : 'hover:bg-white/5',
+                      )}
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium text-foreground">{model.name || model.id}</div>

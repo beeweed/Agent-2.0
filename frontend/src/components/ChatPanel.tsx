@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
+import { cn } from '../utils';
 import { useChatStream } from '../hooks/useChatStream';
 import { useAppStore } from '../store/useAppStore';
 import { ThinkingIndicator } from './ThinkingIndicator';

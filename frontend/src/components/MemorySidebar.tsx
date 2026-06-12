@@ -1,3 +1,4 @@
+import { cn, truncatePath } from '../utils';
 import { useAppStore } from '../store/useAppStore';
 
 export function MemorySidebar() {
@@ -143,13 +144,12 @@ export function MemorySidebar() {
             ) : (
               allToolBlocks.slice().reverse().map((block) => (
                 <div key={block.id} className="flex items-start gap-3 p-3 rounded-xl bg-[#363638] border border-border/30">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    block.status === 'done'
-                      ? 'bg-emerald-500/20'
-                      : block.status === 'error'
-                        ? 'bg-red-500/20'
-                        : 'bg-blue-500/20'
-                  }`}>
+                  <div className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                    block.status === 'done' && 'bg-emerald-500/20',
+                    block.status === 'error' && 'bg-red-500/20',
+                    block.status === 'running' && 'bg-blue-500/20',
+                  )}>
                     {block.status === 'done' ? (
                       <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -167,17 +167,16 @@ export function MemorySidebar() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-medium text-foreground">{block.action}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                        block.status === 'done'
-                          ? 'bg-emerald-500/15 text-emerald-400'
-                          : block.status === 'error'
-                            ? 'bg-red-500/15 text-red-400'
-                            : 'bg-primary/15 text-primary animate-pulse'
-                      }`}>
+                      <span className={cn(
+                        'text-[10px] px-1.5 py-0.5 rounded',
+                        block.status === 'done' && 'bg-emerald-500/15 text-emerald-400',
+                        block.status === 'error' && 'bg-red-500/15 text-red-400',
+                        block.status === 'running' && 'bg-primary/15 text-primary animate-pulse',
+                      )}>
                         {block.status}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{block.filePath || block.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{truncatePath(block.filePath || block.name, 35)}</p>
                   </div>
                 </div>
               ))
