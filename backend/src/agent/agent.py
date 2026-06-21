@@ -9,6 +9,7 @@ from src.agent.systemprompt import SYSTEM_PROMPT
 from src.config.settings import settings
 from src.services.e2b_service import E2BSandboxManager
 from src.services.openrouter import openrouter_client
+from src.services.nvidia_nim import nvidia_nim_client
 from src.tools import TOOL_REGISTRY, TOOL_SCHEMAS
 
 
@@ -72,8 +73,10 @@ class CodingAgent:
         message: str,
         session_id: Optional[str],
         openrouter_api_key: str,
+        nvidia_nim_api_key: str = "",
         e2b_api_key: str,
         model: str,
+        provider: str = "openrouter",
         template_id: Optional[str] = None,
         on_event: Optional[Callable[[SSEvent], None]] = None,
     ) -> AsyncGenerator[SSEvent, None]:
@@ -81,8 +84,11 @@ class CodingAgent:
         if not sanitized_message:
             yield {"type": "error", "message": "Message cannot be empty."}
             return
-        if not openrouter_api_key:
+        if provider == "openrouter" and not openrouter_api_key:
             yield {"type": "error", "message": "OpenRouter API key is required."}
+            return
+        if provider == "nvidia" and not nvidia_nim_api_key:
+            yield {"type": "error", "message": "NVIDIA NIM API key is required."}
             return
         if not model:
             yield {"type": "error", "message": "Model selection is required."}
@@ -112,11 +118,13 @@ class CodingAgent:
             yield {"type": "iteration", "iteration": iteration, "max_iterations": settings.max_iterations}
             accumulator = StreamAccumulator()
 
-            async for stream_event in self._stream_openrouter(
-                api_key=openrouter_api_key,
+            stream_api_key = openrouter_api_key if provider == "openrouter" else nvidia_nim_api_key
+            async for stream_event in self._stream(
+                api_key=stream_api_key,
                 model=model,
                 messages=messages,
                 accumulator=accumulator,
+                provider=provider,
             ):
                 if on_event:
                     on_event(stream_event)
@@ -179,14 +187,22 @@ class CodingAgent:
             "iteration": settings.max_iterations,
         }
 
-    async def _stream_openrouter(
+    async def _stream(
         self,
         *,
         api_key: str,
         model: str,
         messages: list[dict[str, Any]],
         accumulator: StreamAccumulator,
+        provider: str = "openrouter",
     ) -> AsyncGenerator[SSEvent, None]:
+        if provider == "nvidia":
+            base_url = nvidia_nim_client.base_url
+            headers = nvidia_nim_client.headers(api_key)
+        else:
+            base_url = openrouter_client.base_url
+            headers = openrouter_client.headers(api_key)
+
         payload = {
             "model": model,
             "messages": messages,
@@ -198,8 +214,8 @@ class CodingAgent:
         async with httpx.AsyncClient(timeout=timeout) as client:
             async with client.stream(
                 "POST",
-                f"{openrouter_client.base_url}/chat/completions",
-                headers=openrouter_client.headers(api_key),
+                f"{base_url}/chat/completions",
+                headers=headers,
                 json=payload,
             ) as response:
                 if response.status_code >= 400:

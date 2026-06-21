@@ -23,9 +23,12 @@ export const useAppStore = create<AppState>()(
       name: 'e2b-agent-settings',
       partialize: (state) => ({
         openrouterApiKey: state.openrouterApiKey,
+        nvidiaNimApiKey: state.nvidiaNimApiKey,
         e2bApiKey: state.e2bApiKey,
         templateId: state.templateId,
         selectedModel: state.selectedModel,
+        provider: state.provider,
+        models: state.models,
       } as Partial<PersistedSettings>),
     },
   ),

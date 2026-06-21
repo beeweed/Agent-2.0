@@ -12,6 +12,7 @@ from src.agent.agent import CodingAgent
 from src.config.settings import settings
 from src.services.e2b_service import sandbox_manager
 from src.services.openrouter import openrouter_client
+from src.services.nvidia_nim import nvidia_nim_client
 
 
 class ModelRequest(BaseModel):
@@ -21,9 +22,11 @@ class ModelRequest(BaseModel):
 class ChatStreamRequest(BaseModel):
     message: str = Field(min_length=1)
     session_id: str | None = None
-    openrouter_api_key: str = Field(min_length=1)
+    openrouter_api_key: str = ""
+    nvidia_nim_api_key: str = ""
     e2b_api_key: str = Field(min_length=1)
     model: str = Field(min_length=1)
+    provider: str = "openrouter"
     template_id: str | None = None
 
 
@@ -61,6 +64,15 @@ async def openrouter_models(payload: ModelRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.post("/api/nvidia/models")
+async def nvidia_models(payload: ModelRequest) -> dict[str, Any]:
+    try:
+        models = await nvidia_nim_client.list_models(payload.api_key)
+        return {"models": models}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/api/chat/stream")
 async def chat_stream(payload: ChatStreamRequest) -> StreamingResponse:
     async def event_stream() -> AsyncGenerator[str, None]:
@@ -69,8 +81,10 @@ async def chat_stream(payload: ChatStreamRequest) -> StreamingResponse:
                 message=payload.message,
                 session_id=payload.session_id,
                 openrouter_api_key=payload.openrouter_api_key,
+                nvidia_nim_api_key=payload.nvidia_nim_api_key,
                 e2b_api_key=payload.e2b_api_key,
                 model=payload.model,
+                provider=payload.provider,
                 template_id=payload.template_id,
             ):
                 yield encode_sse(event)

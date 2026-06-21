@@ -1,29 +1,29 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '../utils';
-import { fetchModels } from '../lib/api';
+import { fetchModels, fetchNvidiaModels } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
 
 export function SettingsDialog() {
   const {
     openrouterApiKey,
+    nvidiaNimApiKey,
     e2bApiKey,
     templateId,
     selectedModel,
     models,
+    provider,
     setSettings,
     setModels,
   } = useAppStore();
   const [open, setOpen] = useState(false);
   const [modelStatus, setModelStatus] = useState('');
   const [modelSearch, setModelSearch] = useState('');
-  const toolCapableModels = useMemo(() => models.filter((model) => model.supports_tools), [models]);
   const shownModels = useMemo(() => {
-    const all = toolCapableModels.length > 0 ? toolCapableModels : models;
-    if (!modelSearch) return all;
+    if (!modelSearch) return models;
     const q = modelSearch.toLowerCase();
-    return all.filter((m) => m.id.toLowerCase().includes(q) || (m.name && m.name.toLowerCase().includes(q)));
-  }, [models, toolCapableModels, modelSearch]);
+    return models.filter((m) => m.id.toLowerCase().includes(q) || (m.name && m.name.toLowerCase().includes(q)));
+  }, [models, modelSearch]);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,9 +33,11 @@ export function SettingsDialog() {
   }, [open]);
 
   async function handleLoadModels() {
+    const apiKey = provider === 'nvidia' ? nvidiaNimApiKey : openrouterApiKey;
+    const label = provider === 'nvidia' ? 'NVIDIA NIM' : 'OpenRouter';
     try {
-      setModelStatus('Loading OpenRouter models...');
-      const result = await fetchModels(openrouterApiKey);
+      setModelStatus(`Loading ${label} models...`);
+      const result = provider === 'nvidia' ? await fetchNvidiaModels(apiKey) : await fetchModels(apiKey);
       setModels(result);
       const firstToolModel = result.find((model) => model.supports_tools) ?? result[0];
       if (firstToolModel && !selectedModel) {
@@ -85,27 +87,91 @@ export function SettingsDialog() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <label className="text-sm font-medium text-foreground" htmlFor="openrouter-key">OpenRouter API Key</label>
+                <label className="text-sm font-medium text-foreground">Provider</label>
               </div>
-              <div className="rounded-xl bg-[#363638] p-4">
-                <input
-                  id="openrouter-key"
-                  type="password"
-                  placeholder="sk-or-v1-..."
-                  value={openrouterApiKey}
-                  onChange={(event) => setSettings({ openrouterApiKey: event.target.value })}
-                  className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSettings({ provider: 'openrouter' })}
+                  className={cn(
+                    'flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-all',
+                    provider === 'openrouter'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                      : 'bg-[#363638] text-muted-foreground hover:bg-white/10',
+                  )}
+                >
+                  OpenRouter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ provider: 'nvidia' })}
+                  className={cn(
+                    'flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-all',
+                    provider === 'nvidia'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                      : 'bg-[#363638] text-muted-foreground hover:bg-white/10',
+                  )}
+                >
+                  NVIDIA NIM
+                </button>
               </div>
-              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                Get your API key
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
             </div>
+
+            {provider === 'openrouter' && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  <label className="text-sm font-medium text-foreground" htmlFor="openrouter-key">OpenRouter API Key</label>
+                </div>
+                <div className="rounded-xl bg-[#363638] p-4">
+                  <input
+                    id="openrouter-key"
+                    type="password"
+                    placeholder="sk-or-v1-..."
+                    value={openrouterApiKey}
+                    onChange={(event) => setSettings({ openrouterApiKey: event.target.value })}
+                    className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  />
+                </div>
+                <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  Get your API key
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            )}
+
+            {provider === 'nvidia' && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  <label className="text-sm font-medium text-foreground" htmlFor="nvidia-key">NVIDIA NIM API Key</label>
+                </div>
+                <div className="rounded-xl bg-[#363638] p-4">
+                  <input
+                    id="nvidia-key"
+                    type="password"
+                    placeholder="nvapi-..."
+                    value={nvidiaNimApiKey}
+                    onChange={(event) => setSettings({ nvidiaNimApiKey: event.target.value })}
+                    className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  />
+                </div>
+                <a href="https://build.nvidia.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  Get your API key
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            )}
 
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -157,7 +223,7 @@ export function SettingsDialog() {
                 <button
                   type="button"
                   onClick={handleLoadModels}
-                  disabled={!openrouterApiKey}
+                  disabled={provider === 'nvidia' ? !nvidiaNimApiKey : !openrouterApiKey}
                   className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Fetch Models
@@ -181,7 +247,7 @@ export function SettingsDialog() {
 
               <div className="max-h-[280px] space-y-1 overflow-y-auto rounded-xl bg-[#363638] p-2">
                 {shownModels.length === 0 ? (
-                  <p className="p-3 text-center text-xs text-muted-foreground">No models loaded. Click &quot;Fetch Models&quot; to load models from OpenRouter.</p>
+                  <p className="p-3 text-center text-xs text-muted-foreground">No models loaded. Click &quot;Fetch Models&quot; to load models from {provider === 'nvidia' ? 'NVIDIA NIM' : 'OpenRouter'}.</p>
                 ) : (
                   shownModels.map((model) => (
                     <button
@@ -194,7 +260,12 @@ export function SettingsDialog() {
                       )}
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-foreground">{model.name || model.id}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium text-foreground">{model.name || model.id}</span>
+                          {model.supports_tools && (
+                            <span className="shrink-0 rounded-md border border-primary/30 bg-primary/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary">Tools</span>
+                          )}
+                        </div>
                         <div className="truncate text-[10px] text-muted-foreground">{model.id}</div>
                       </div>
                       {selectedModel === model.id && (

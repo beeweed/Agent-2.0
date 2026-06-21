@@ -10,8 +10,16 @@ export function useChatStream() {
     const trimmed = content.trim();
     if (!trimmed || store.isStreaming) return;
 
-    if (!store.openrouterApiKey || !store.e2bApiKey || !store.selectedModel) {
-      store.setError('Add OpenRouter API key, E2B API key, and select a model in Settings before chatting.');
+    if (!store.e2bApiKey || !store.selectedModel) {
+      store.setError('Add E2B API key and select a model in Settings before chatting.');
+      return;
+    }
+    if (store.provider === 'openrouter' && !store.openrouterApiKey) {
+      store.setError('Add OpenRouter API key in Settings before chatting.');
+      return;
+    }
+    if (store.provider === 'nvidia' && !store.nvidiaNimApiKey) {
+      store.setError('Add NVIDIA NIM API key in Settings before chatting.');
       return;
     }
 
@@ -33,8 +41,10 @@ export function useChatStream() {
           message: trimmed,
           session_id: store.sessionId,
           openrouter_api_key: store.openrouterApiKey,
+          nvidia_nim_api_key: store.nvidiaNimApiKey,
           e2b_api_key: store.e2bApiKey,
           model: store.selectedModel,
+          provider: store.provider,
           template_id: store.templateId || null,
         }),
       });
